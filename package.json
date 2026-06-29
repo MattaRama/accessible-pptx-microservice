@@ -1,0 +1,30 @@
+{
+  "name": "accessible-pptx-microservice",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "@types/express": "^5.0.6",
+    "@types/express-fileupload": "^1.5.1",
+    "@xmldom/xmldom": "^0.9.10",
+    "compute-cosine-similarity": "^1.1.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-fileupload": "^1.5.2",
+    "jszip": "^3.10.1",
+    "openai": "^6.44.0",
+    "p-queue": "^9.3.0",
+    "uuid": "^14.0.1"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "gentypes": "mkdir -p supabase && bunx supabase gen types typescript --project-id bgewlzdpjpjyzbwlehsg > supabase/database.types.ts"
+  }
+}
