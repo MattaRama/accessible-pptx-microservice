@@ -66,15 +66,16 @@ router.post('/', apiKeyAuth, async (req: Request, res: Response) => {
 */
 router.get('/', apiKeyAuth, async (req: Request, res: Response) => {
   verboseLog(`[Route] GET /altext: Start`);
-  if (!req.body || !req.body.jobId) {
+  const jobId = req.query.jobId as string;
+  if (!jobId) {
     verboseLog(`[Route] GET /altext: Reject, no jobId`);
     res.status(400).send({
-      reason: 'Invalid response body provided (requires jobId)'
+      reason: 'Invalid query parameters provided (requires jobId)'
     });
     return;
   }
   
-  const job = getJob(req.body.jobId);
+  const job = getJob(jobId);
   
   if (!job) {
     verboseLog(`[Route] GET /altext: Reject, bad jobId`);
@@ -96,15 +97,16 @@ router.get('/', apiKeyAuth, async (req: Request, res: Response) => {
 */
 router.get('/fetch', apiKeyAuth, (req: Request, res: Response) => {
   verboseLog(`[Route] GET /altext/fetch: Start`);
-  if (!req.body || !req.body.jobId) {
+  const jobId = req.query.jobId as string;
+  if (!jobId) {
     verboseLog(`[Route] GET /altext/fetch: Reject, no jobId`);
     res.status(400).send({
-      reason: 'Invalid response body provided (requires jobId)'
+      reason: 'Invalid query parameters provided (requires jobId)'
     });
     return;
   }
   
-  const job = getJob(req.body.jobId);
+  const job = getJob(jobId);
   
   if (!job) {
     verboseLog(`[Route] GET /altext/fetch: Reject, bad jobId`);
@@ -143,15 +145,16 @@ router.get('/fetch', apiKeyAuth, (req: Request, res: Response) => {
 */
 router.get('/subscribe', apiKeyAuth, (req: Request, res: Response) => {
   verboseLog(`[Route] GET /altext/subscribe: Start`);
-  if (!req.body || !req.body.jobId) {
+  const jobId = req.query.jobId as string;
+  if (!jobId) {
     verboseLog(`[Route] GET /altext/subscribe: Reject, no jobId`);
     res.status(400).send({
-      reason: 'Invalid response body provided (requires jobId)'
+      reason: 'Invalid query parameters provided (requires jobId)'
     });
     return;
   }
   
-  const job = getJob(req.body.jobId);
+  const job = getJob(jobId);
   
   if (!job) {
     verboseLog(`[Route] GET /altext/subscribe: Reject, bad jobId`);
