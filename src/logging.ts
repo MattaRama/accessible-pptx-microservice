@@ -1,8 +1,17 @@
+import { config } from "dotenv";
 import { LogLevel } from "./constants";
 import type { AltTextJob } from "./service/alt-text-job";
 import { supabase } from "./supabase";
 
+config();
+
 export type JobStatTimestampType = 'start_time' | 'end_time' | 'created_time';
+
+export function verboseLog(output: any) {
+  if (process.env['CONSOLE_VERBOSE']) {
+    console.log(output);
+  }
+}
 
 export async function logCreateJobStat(): Promise<string | undefined> {
   const id = (await supabase.from('jobstats').insert({

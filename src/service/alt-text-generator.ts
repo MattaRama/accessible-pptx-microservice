@@ -5,7 +5,7 @@ import JSZip from "jszip";
 import { applyAltTextToSlides, exportPptxContent } from "./pptx";
 import { OpenAI } from "openai";
 import { describeImagePrompt, improveImageDescriptionPrompt } from "./prompts";
-import { logAIInteraction } from "../logging";
+import { logAIInteraction, verboseLog } from "../logging";
 
 const ai = new OpenAI();
 
@@ -72,30 +72,33 @@ export async function processFile(job: AltTextJob): Promise<UploadedFile | null>
   // export data from pptx
   const zip = await JSZip.loadAsync(job.file.data);
   const slideData = await exportPptxContent(zip);
-
+  verboseLog(`[Generator] Slide data extracted (${job.id})`);
+  
   // embed each slide's text
   const slideText = slideData.map(e => `[${e.texts.join('.\t')}]`);
-
+  
   const textEmbeddings = (await ai.embeddings.create({
     model: DEFAULT_EMBEDDING_MODEL,
     input: slideText
   })).data.map(e => e.embedding);
-
+  verboseLog(`[Generator] Embeddings generated (${job.id})`);
+  
   // for each image, generate initial descriptions and embed
   const imgDescs = await Promise.all(slideData.map(async slide => {
     const descriptions = await Promise.all(slide.images.map(img => describeImage(img.base64, img.mimeType, job)));
-
+    
     const imgEmbeds = (await ai.embeddings.create({
       model: DEFAULT_EMBEDDING_MODEL,
       input: slideText
     })).data.map(e => e.embedding);
-
+    
     return descriptions.map((val, i) => ({
       text: val,
       embedding: imgEmbeds[i]
     }));
   }));
-
+  verboseLog(`[Generator] Descriptions created and embeded (${job.id})`);
+  
   // for each image:
   await Promise.all(slideData.map(async (slide, i) => {
     await Promise.all(slide.images.map(async (img, j) => {
@@ -114,18 +117,22 @@ export async function processFile(job: AltTextJob): Promise<UploadedFile | null>
         similarities.slice(0, 3).map(e => e.text!),
         `[ ${slideData[i]!.texts.join('", "')} ]`
       );
-
+      
       // modify original slideData
       slideData[i]!.images[j]!.altText = newDesc;
     }));
   }));
   
+  verboseLog(`[Generator] Refined descriptions generated (${job.id})`);
+  
   // add alt text to original pptx
   const newZip = await applyAltTextToSlides(zip, slideData);
-
+  verboseLog(`[Generator] Alt text applied (${job.id})`);
+  
   // return new pptx
   const newData = await newZip.generateAsync({ type: 'nodebuffer' });
   const ret = { ...job.file };
   ret.data = newData;
+  verboseLog(`[Generator] Complete (${job.id})`);
   return ret;
 }

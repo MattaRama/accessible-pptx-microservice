@@ -3,7 +3,7 @@ import { type AltTextJob, type StartAltTextJobOptions } from './alt-text-job';
 import { v4 as genId } from 'uuid';
 
 import { processFile } from './alt-text-generator';
-import { logCreateJobStat, logJobFailed, logUpdateJobStatTimestamp } from '../logging';
+import { logCreateJobStat, logJobFailed, logUpdateJobStatTimestamp, verboseLog } from '../logging';
 import { DEFAULT_LOG_LEVEL } from '../constants';
 
 const CONCURRENCY_LIMIT = parseInt(process.env['JOB_CONCURRENCY_LIMIT'] || '10');
@@ -38,19 +38,22 @@ export async function createJob(options: StartAltTextJobOptions) {
 }
 
 export async function processJob(job: AltTextJob) {
+  verboseLog(`[Service] Started ${job.id} (${job.supabaseId})`);
   job.status = "RUNNING";
-
+  
   logUpdateJobStatTimestamp(job, 'start_time');
-
+  
   try {
     const response = await processFile(job);
     job.result = response;
     job.status = 'COMPLETE';
     logUpdateJobStatTimestamp(job, 'end_time');
+    verboseLog(`[Service] Completed ${job.id} (${job.supabaseId})`);
   } catch (err) {
     job.status = 'FAILED';
     job.errorReason = <string>err;
     logJobFailed(job);
+    verboseLog(`[Service] Failed ${job.id} (${job.supabaseId})`);
   }
 
   // remove data from memory after JOB_HOLD_TIME seconds

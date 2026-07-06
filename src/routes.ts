@@ -4,6 +4,7 @@ import type { UploadedFile } from 'express-fileupload';
 import { createJob, getJob } from './service/alt-text-service';
 import { apiKeyAuth } from './auth';
 import { DEFAULT_LOG_LEVEL, DOCX_MIME_TYPE, LogLevel } from './constants';
+import { verboseLog } from './logging';
 const { Router } = express;
 
 const router = Router();
@@ -13,6 +14,7 @@ const router = Router();
  * Starts a new job
  */
 router.post('/', apiKeyAuth, async (req: Request, res: Response) => {
+  verboseLog(`[Route] POST /alttext: Start`);
   if (req.files && Object.keys(req.files).length === 1 && req.files.uploadedFile) {
     // check for valid file type
     const uploadedFile = <UploadedFile>(req.files.uploadedFile);
@@ -26,28 +28,32 @@ router.post('/', apiKeyAuth, async (req: Request, res: Response) => {
     const logLevel = req.body['logLevel'] || DEFAULT_LOG_LEVEL;
 
     if (logLevel > LogLevel.FULL || logLevel < 0) {
+      verboseLog(`[Route] POST /altext: Reject, bad log level`);
       res.status(400).send({
         reason: `Invalid logLevel parameter (must be ${LogLevel.LIMITED}-${LogLevel.FULL})`
       });
       return;
     }
-
+    
     // start job
     let job;
     try {
       job = await createJob({file: uploadedFile, logLevel: logLevel});
     } catch (err) {
+      verboseLog(`[Route] POST /altext: Internal server error processing job`);
       res.status(500).send({
         reason: 'Internal server error.'
       });
       return;
     }
-
+    
     // send job started response
+    verboseLog(`[Route] POST /altext: Job started`);
     res.status(201).send({
       jobId: job.id
     });
   } else {
+    verboseLog(`[Route] POST /altext: Reject, bad file count`);
     res.status(400).send({
       reason: 'Invalid file count (must be exactly 1)'
     });
@@ -57,24 +63,27 @@ router.post('/', apiKeyAuth, async (req: Request, res: Response) => {
 /**
  * Route: GET /alttext
  * Gets job information
- */
+*/
 router.get('/', apiKeyAuth, async (req: Request, res: Response) => {
+  verboseLog(`[Route] GET /altext: Start`);
   if (!req.body || !req.body.jobId) {
+    verboseLog(`[Route] GET /altext: Reject, no jobId`);
     res.status(400).send({
       reason: 'Invalid response body provided (requires jobId)'
     });
     return;
   }
-
+  
   const job = getJob(req.body.jobId);
-
+  
   if (!job) {
+    verboseLog(`[Route] GET /altext: Reject, bad jobId`);
     res.status(400).send({
       reason: `Job with ID ${req.body.jobId} not found.`
     })
     return;
   }
-
+  
   return res.status(200).send({
     jobId: job.id,
     jobStatus: job.status
@@ -84,30 +93,33 @@ router.get('/', apiKeyAuth, async (req: Request, res: Response) => {
 /**
  * Route: GET /alttext/fetch
  * Gets the resulting file from a job
- */
+*/
 router.get('/fetch', apiKeyAuth, (req: Request, res: Response) => {
+  verboseLog(`[Route] GET /altext/fetch: Start`);
   if (!req.body || !req.body.jobId) {
+    verboseLog(`[Route] GET /altext/fetch: Reject, no jobId`);
     res.status(400).send({
       reason: 'Invalid response body provided (requires jobId)'
     });
     return;
   }
-
+  
   const job = getJob(req.body.jobId);
   
   if (!job) {
+    verboseLog(`[Route] GET /altext/fetch: Reject, bad jobId`);
     res.status(400).send({
       reason: `Job with ID ${req.body.jobId} not found.`
     })
     return;
   }
-
+  
   if (job.status === 'COMPLETE') {
     const jobResult = { ...job.result };
     delete jobResult.mv;
     const data = jobResult.data;
     delete jobResult.data;
-
+    
     res.status(200).send({
       ...jobResult,
       data: data?.toBase64()
@@ -128,30 +140,33 @@ router.get('/fetch', apiKeyAuth, (req: Request, res: Response) => {
 /**
  * Route: GET /alttext/subscribe
  * Gets the resulting file from a job once completed
- */
+*/
 router.get('/subscribe', apiKeyAuth, (req: Request, res: Response) => {
+  verboseLog(`[Route] GET /altext/subscribe: Start`);
   if (!req.body || !req.body.jobId) {
+    verboseLog(`[Route] GET /altext/subscribe: Reject, no jobId`);
     res.status(400).send({
       reason: 'Invalid response body provided (requires jobId)'
     });
     return;
   }
-
+  
   const job = getJob(req.body.jobId);
   
   if (!job) {
+    verboseLog(`[Route] GET /altext/subscribe: Reject, bad jobId`);
     res.status(400).send({
       reason: `Job with ID ${req.body.jobId} not found.`
     })
     return;
   }
-
+  
   if (job.status === 'COMPLETE') {
     const jobResult = { ...job.result };
     delete jobResult.mv;
     const data = jobResult.data;
     delete jobResult.data;
-
+    
     res.status(200).send({
       ...jobResult,
       data: data?.toBase64()
